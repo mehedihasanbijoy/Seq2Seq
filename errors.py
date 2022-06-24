@@ -1,13 +1,12 @@
 from utils import (
     df2train_test_dfs, basic_tokenizer, init_weights, count_parameters,
     translate_sentence, display_attention, df2train_valid_test_dfs,
-    save_model, load_model, df2train_error_dfs
+    save_model, load_model, df2train_error_dfs, word2chars
 )
 from models import Encoder, Decoder, Attention, Seq2Seq
 from pipeline import train, test_accuracy
 from inference import test_beam, test_greedy
 from focalLoss import FocalLoss
-from errors import error_df
 
 import torch, torch.nn as nn, torch.optim as optim
 import torch.nn.functional as F
@@ -33,7 +32,16 @@ import warnings as wrn
 wrn.filterwarnings('ignore')
 
 
-def main():
+def error_df(df, error='Cognitive Error'):
+    df = df.loc[df['ErrorType'] == error]
+    df['Word'] = df['Word'].apply(word2chars)
+    df['Error'] = df['Error'].apply(word2chars)
+    df = df.sample(frac=1).reset_index(drop=True)
+    df = df.iloc[:, [1, 0]]
+    df.to_csv('./Dataset/error.csv', index=False)
+
+
+def check_error():
     df = pd.read_csv('./Dataset/sec_dataset_II.csv')
     df = df.iloc[:, :]
     # df2train_test_dfs(df=df, test_size=0.15)
@@ -100,7 +108,7 @@ def main():
     MAX_LEN = 32
     N_EPOCHS = 10
     CLIP = 1
-    PATH = './Dataset/Seq2Seq_spell_JL_M.pth'
+    PATH = ''
 
     train_iterator, valid_iterator, test_iterator = BucketIterator.splits(
         (train_data, valid_data, test_data),
@@ -135,26 +143,11 @@ def main():
     # criterion = FocalLoss(alpha=0.5, gamma=2.0, reduction='mean')
 
     PATH = './Checkpoints/spell_s2s.pth'
-    best_loss = 1e10
+    # best_loss = 1e10
 
     checkpoint, epoch, train_loss = load_model(model, optimizer, PATH)
-    best_loss = train_loss
-
-    # epoch = 1
-    N_EPOCHS = epoch+100
-    for epoch in range(epoch, N_EPOCHS):
-        print(f'Epoch: {epoch} / {N_EPOCHS}')
-        train_loss = train(model, train_iterator, optimizer, criterion)
-        print(f"Train Loss: {train_loss:.2f}")
-
-        if train_loss < best_loss:
-            best_loss = train_loss
-            save_model(model, epoch, optimizer, train_loss, PATH)
-
-        # scheduler.step()
-        # if epoch%10 == 0:
-        #     # test_accuracy(valid_data, SRC, TRG, model, DEVICE)
-        #     test_accuracy(error_data, SRC, TRG, model, DEVICE)
+    # best_loss = train_loss
+    test_accuracy(error_data, SRC, TRG, model, DEVICE)
 
 
     # test_beam(model, train_data, test_data, SRC, TRG, DEVICE)
@@ -171,4 +164,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    check_error()

@@ -36,6 +36,33 @@ def df2train_test_dfs(df, test_size=0.15):
     test_df.to_csv('./Dataset/test.csv', index=False)
 
 
+def df2train_valid_test_dfs(df, test_size=0.15):
+    df['Word'] = df['Word'].apply(word2chars)
+    df['Error'] = df['Error'].apply(word2chars)
+    df = df.sample(frac=1).reset_index(drop=True)
+    df = df.iloc[:, [1, 0]]
+    train_df, test_df = train_test_split(df, test_size=test_size)
+    train_df, valid_df = train_test_split(train_df, test_size=.05)
+
+    train_df.to_csv('./Dataset/train.csv', index=False)
+    valid_df.to_csv('./Dataset/valid.csv', index=False)
+    test_df.to_csv('./Dataset/test.csv', index=False)
+
+
+def df2train_error_dfs(df, error='Cognitive Error', test_size=0.20):
+    df['Word'] = df['Word'].apply(word2chars)
+    df['Error'] = df['Error'].apply(word2chars)
+    df = df.sample(frac=1).reset_index(drop=True)
+    # df = df.iloc[:, [1, 0]]
+    train_df, error_df = train_test_split(df, test_size=test_size)
+    error_df = error_df.loc[error_df['ErrorType'] == error]
+    train_df = train_df.iloc[:, [1, 0]]
+    error_df = error_df.iloc[:, [1, 0]]
+
+    train_df.to_csv('./Dataset/train.csv', index=False)
+    error_df.to_csv('./Dataset/error.csv', index=False)
+
+
 def basic_tokenizer(text):
     return text.split()
 
